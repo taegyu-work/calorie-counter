@@ -1,0 +1,1413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calorie Counter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Log what you eat, track the daily total against a target, and sync it across every device.">
+<meta name="theme-color" content="#b06a1e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calorie Counter">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #f2efe8;
+    --surface: #ffffff;
+    --surface-2: #e8e3d7;
+    --border: #ddd6c6;
+    --border-strong: #c8c0ab;
+    --text: #221f18;
+    --text-muted: #6d685a;
+    --text-faint: #948d79;
+    --accent: #b06a1e;
+    --accent-soft: #f3e7d6;
+    --accent-contrast: #ffffff;
+    --good: #4f7d4a;
+    --good-soft: #e5efe0;
+    --danger: #ab4a3a;
+    --danger-soft: #f5e5e1;
+    --focus-ring: #b06a1e;
+
+    --meal-breakfast: #b8862c;
+    --meal-lunch: #4f7d4a;
+    --meal-dinner: #4f6f89;
+    --meal-snack: #8a5a86;
+
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1815;
+      --surface: #24221e;
+      --surface-2: #2d2a24;
+      --border: #3a362d;
+      --border-strong: #4c4739;
+      --text: #ece7db;
+      --text-muted: #a39d8a;
+      --text-faint: #7d7663;
+      --accent: #dda86a;
+      --accent-soft: #362a1c;
+      --accent-contrast: #1c1508;
+      --good: #8cbf82;
+      --good-soft: #1f2c1c;
+      --danger: #dd8c7a;
+      --danger-soft: #38241f;
+      --focus-ring: #dda86a;
+
+      --meal-breakfast: #d6a94f;
+      --meal-lunch: #8cbf82;
+      --meal-dinner: #8fb0c9;
+      --meal-snack: #c49bbf;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1815;
+    --surface: #24221e;
+    --surface-2: #2d2a24;
+    --border: #3a362d;
+    --border-strong: #4c4739;
+    --text: #ece7db;
+    --text-muted: #a39d8a;
+    --text-faint: #7d7663;
+    --accent: #dda86a;
+    --accent-soft: #362a1c;
+    --accent-contrast: #1c1508;
+    --good: #8cbf82;
+    --good-soft: #1f2c1c;
+    --danger: #dd8c7a;
+    --danger-soft: #38241f;
+    --focus-ring: #dda86a;
+
+    --meal-breakfast: #d6a94f;
+    --meal-lunch: #8cbf82;
+    --meal-dinner: #8fb0c9;
+    --meal-snack: #c49bbf;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 56px 22px 96px;
+  }
+
+  header.masthead { margin-bottom: 28px; }
+
+  .masthead-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .lang-toggle button {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: none;
+    border-left: 1px solid var(--border-strong);
+    padding: 5px 9px;
+    cursor: pointer;
+  }
+
+  .lang-toggle button:first-child { border-left: none; }
+  .lang-toggle button[data-active="true"] { background: var(--accent); color: var(--accent-contrast); }
+
+  h1 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: 33px;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    max-width: 54ch;
+  }
+
+  /* --- date bar --- */
+
+  .datebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-strong);
+  }
+
+  .date-nav {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    display: grid;
+    place-content: center;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    transition: border-color 0.12s ease, color 0.12s ease;
+  }
+
+  .date-nav:hover { border-color: var(--accent); color: var(--accent); }
+
+  .date-center { text-align: center; flex: 1; min-width: 0; }
+
+  .date-label {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .today-btn {
+    display: block;
+    margin: 2px auto 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+
+  .today-btn[hidden] { display: none; }
+
+  /* --- summary / progress --- */
+
+  .summary { margin-top: 18px; }
+
+  .summary-figures {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .total-kcal {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 24px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .total-kcal .unit { font-size: 14px; color: var(--text-faint); font-weight: 500; }
+
+  .goal-wrap {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .goal-btn {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--accent-soft);
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 2px 7px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .goal-btn:hover { border-color: var(--accent); }
+
+  .goal-input {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    width: 74px;
+    padding: 2px 6px;
+    border: 1px solid var(--focus-ring);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+  }
+
+  .progress {
+    margin-top: 12px;
+    height: 10px;
+    background: var(--surface-2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.35s ease, background 0.2s ease;
+  }
+
+  .progress-fill.over { background: var(--danger); }
+
+  .remaining {
+    margin-top: 7px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .remaining.over { color: var(--danger); font-weight: 600; }
+
+  /* --- add form --- */
+
+  form.add-form { margin: 24px 0 4px; }
+
+  .add-row { display: flex; gap: 8px; }
+
+  .add-row input[type="text"].food {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 11px 13px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .add-row input.kcal {
+    width: 84px;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    text-align: right;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 11px 10px;
+    outline: none;
+  }
+
+  .add-row input::placeholder { color: var(--text-faint); }
+
+  .add-row input:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .add-row button.primary {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14.5px;
+    color: var(--accent-contrast);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0 18px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+  }
+
+  .add-row button.primary:hover { opacity: 0.88; }
+
+  .add-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .field-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-right: 2px;
+  }
+
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .segmented button {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: none;
+    border-left: 1px solid var(--border-strong);
+    padding: 6px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .segmented button:first-child { border-left: none; }
+  .segmented button[data-active="true"] { background: var(--accent-soft); color: var(--accent); }
+
+  /* --- list --- */
+
+  ul.list {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+  }
+
+  .meal-group + .meal-group { margin-top: 6px; }
+
+  .meal-head {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 2px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .meal-head .m-breakfast { color: var(--meal-breakfast); }
+  .meal-head .m-lunch { color: var(--meal-lunch); }
+  .meal-head .m-dinner { color: var(--meal-dinner); }
+  .meal-head .m-snack { color: var(--meal-snack); }
+
+  .meal-head .subtotal { color: var(--text-faint); font-weight: 500; }
+
+  li.entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .entry-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    color: var(--text);
+    word-wrap: break-word;
+    cursor: text;
+    outline: none;
+    border-radius: 3px;
+  }
+
+  .entry-name:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+
+  .entry-kcal {
+    width: 74px;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    text-align: right;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 3px 6px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .entry-kcal:hover { border-color: var(--border-strong); }
+  .entry-kcal:focus-visible { border-color: var(--focus-ring); box-shadow: 0 0 0 3px var(--accent-soft); color: var(--text); }
+
+  .del-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: var(--text-faint);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+  }
+
+  li.entry:hover .del-btn,
+  li.entry:focus-within .del-btn { opacity: 1; }
+  .del-btn:hover { color: var(--danger); background: var(--danger-soft); }
+
+  .del-btn:focus-visible,
+  .segmented button:focus-visible,
+  .lang-toggle button:focus-visible,
+  .date-nav:focus-visible,
+  .today-btn:focus-visible,
+  .goal-btn:focus-visible,
+  .icon-action:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .empty-state {
+    padding: 44px 4px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 14px;
+  }
+
+  .empty-state .glyph {
+    font-size: 26px;
+    margin-bottom: 8px;
+    display: block;
+    opacity: 0.5;
+  }
+
+  /* --- footer --- */
+
+  footer.status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-strong);
+  }
+
+  .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .count strong { color: var(--text); font-weight: 600; }
+
+  .icon-action {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 2px;
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-underline-offset: 3px;
+  }
+
+  .icon-action:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  details.transfer {
+    margin-top: 22px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  details.transfer summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  details.transfer summary::-webkit-details-marker { display: none; }
+  details.transfer summary::before { content: "+ "; }
+  details.transfer[open] summary::before { content: "\2212 "; }
+
+  .transfer-body { margin-top: 12px; }
+  .transfer-body p { margin: 0 0 8px; font-size: 12.5px; color: var(--text-muted); }
+
+  textarea.io {
+    width: 100%;
+    min-height: 90px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 10px;
+    outline: none;
+    resize: vertical;
+  }
+
+  textarea.io:focus-visible { border-color: var(--focus-ring); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .transfer-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+  .btn-sm {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--text);
+    color: var(--bg);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 50;
+    max-width: 84vw;
+    text-align: center;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="masthead">
+    <div class="masthead-top">
+      <p class="eyebrow" id="eyebrow"></p>
+      <div class="lang-toggle" id="lang-toggle" role="group">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ko">한국어</button>
+      </div>
+    </div>
+    <h1 id="app-title"></h1>
+    <p class="subtitle" id="subtitle"></p>
+  </header>
+
+  <div class="datebar">
+    <button type="button" class="date-nav" id="prev-day" aria-label="">&#8249;</button>
+    <div class="date-center">
+      <div class="date-label" id="date-label"></div>
+      <button type="button" class="today-btn" id="today-btn" hidden></button>
+    </div>
+    <button type="button" class="date-nav" id="next-day" aria-label="">&#8250;</button>
+  </div>
+
+  <section class="summary">
+    <div class="summary-figures">
+      <span class="total-kcal"><span id="total-num">0</span> <span class="unit">kcal</span></span>
+      <span class="goal-wrap">
+        <span class="field-label" id="goal-label"></span>
+        <button type="button" class="goal-btn" id="goal-btn"></button>
+      </span>
+    </div>
+    <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="remaining" id="remaining"></div>
+  </section>
+
+  <form class="add-form" id="add-form" autocomplete="off">
+    <div class="add-row">
+      <input type="text" class="food" id="add-food" list="food-list" maxlength="80">
+      <input type="text" inputmode="numeric" class="kcal" id="add-kcal" maxlength="5">
+      <button type="submit" class="primary" id="add-btn"></button>
+    </div>
+    <div class="add-options">
+      <span class="field-label" id="meal-label"></span>
+      <span class="segmented" id="meal-picker" role="group">
+        <button type="button" data-val="breakfast"></button>
+        <button type="button" data-val="lunch"></button>
+        <button type="button" data-val="dinner"></button>
+        <button type="button" data-val="snack"></button>
+      </span>
+    </div>
+  </form>
+
+  <datalist id="food-list"></datalist>
+
+  <ul class="list" id="list"></ul>
+
+  <footer class="status-bar">
+    <span class="count" id="count"></span>
+    <button class="icon-action" id="copy-btn"></button>
+  </footer>
+
+  <details class="transfer">
+    <summary id="transfer-summary"></summary>
+    <div class="transfer-body">
+      <p id="transfer-desc"></p>
+      <textarea class="io" id="io-box" spellcheck="false"></textarea>
+      <div class="transfer-actions">
+        <button type="button" class="btn-sm" id="export-btn"></button>
+        <button type="button" class="btn-sm" id="import-btn"></button>
+      </div>
+    </div>
+  </details>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!--
+  ┌───────────────────────────────────────────────────────────────────┐
+  │  LIVE SYNC SETUP (optional)                                        │
+  │  Paste your Firebase web config between the braces below, then     │
+  │  everything syncs live across devices and everyone with the link.  │
+  │  Leave it blank and the app still works, saving to each browser    │
+  │  only. Full steps are in SETUP.md.                                 │
+  └───────────────────────────────────────────────────────────────────┘
+-->
+<script type="module">
+  // ▼▼▼ Firebase web config for project "calorie-counter-c510b" ▼▼▼
+  const CONFIG = {
+    apiKey: "AIzaSyA2P0GTkXqzu9lZ_G4asnamKegR4sjD77I",
+    authDomain: "calorie-counter-c510b.firebaseapp.com",
+    databaseURL: "https://calorie-counter-c510b-default-rtdb.firebaseio.com",
+    projectId: "calorie-counter-c510b",
+    storageBucket: "calorie-counter-c510b.firebasestorage.app",
+    messagingSenderId: "1058634917852",
+    appId: "1:1058634917852:web:e838ba2f5fb8d849865119"
+  };
+  // ▲▲▲ These values are not secrets — Firebase web configs ship in the browser.
+  //     Access is controlled by the Realtime Database rules, not by hiding them. ▲▲▲
+
+  const DB_PATH = "calorieCounter/log";
+  const SDK = "https://www.gstatic.com/firebasejs/10.12.5";
+
+  function decide(value) {
+    window.CC_SYNC = value;
+    window.CC_SYNC_DECIDED = true;
+    window.dispatchEvent(new Event("cc-sync-decided"));
+  }
+
+  if (!CONFIG || !CONFIG.apiKey || !CONFIG.databaseURL) {
+    decide(null);
+  } else {
+    try {
+      const [{ initializeApp }, dbmod, authmod] = await Promise.all([
+        import(`${SDK}/firebase-app.js`),
+        import(`${SDK}/firebase-database.js`),
+        import(`${SDK}/firebase-auth.js`)
+      ]);
+      const app = initializeApp(CONFIG);
+      const db = dbmod.getDatabase(app);
+      const auth = authmod.getAuth(app);
+      const docRef = dbmod.ref(db, DB_PATH);
+
+      let readyResolve;
+      const ready = new Promise((r) => { readyResolve = r; });
+
+      decide({
+        ready,
+        subscribe(cb) {
+          dbmod.onValue(docRef, (snap) => { cb(snap.exists() ? snap.val() : null); }, () => {});
+        },
+        push(data) { return dbmod.set(docRef, data); }
+      });
+
+      try {
+        await authmod.signInAnonymously(auth);
+        readyResolve(true);
+      } catch (e) {
+        console.warn("Calorie Counter: anonymous sign-in failed — sync off.", e);
+        readyResolve(false);
+        window.CC_SYNC = null;
+      }
+    } catch (e) {
+      console.warn("Calorie Counter: Firebase failed to load — sync off.", e);
+      decide(null);
+    }
+  }
+</script>
+
+<script>
+(function () {
+  var DATA_KEY = "calcount.data.v1";
+  var LANG_KEY = "calcount.lang";
+  var DEFAULT_GOAL = 2000;
+  var MEALS = ["breakfast", "lunch", "dinner", "snack"];
+
+  var I18N = {
+    en: {
+      htmlLang: "en", locale: "en-US",
+      eyebrow: "Personal · saved in this browser",
+      eyebrowSync: "Shared · live-synced for everyone with the link",
+      title: "Calorie Counter",
+      subtitle: "Log what you eat, keep an eye on the daily total, and set a target that works for you.",
+      subtitleSync: "Log what you eat and track the daily total against your target. Everything syncs live across your devices and anyone you share the link with.",
+      prevDay: "Previous day", nextDay: "Next day", today: "Today",
+      goalLabel: "Goal", editGoal: "Edit daily goal",
+      left: "{n} kcal left", over: "{n} kcal over",
+      foodPlaceholder: "Food", kcalPlaceholder: "kcal", add: "Add",
+      mealLabel: "Meal",
+      breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack",
+      emptyDay: "Nothing logged for this day.",
+      count: "{n} items · {kcal} kcal", countOne: "{n} item · {kcal} kcal",
+      copy: "Copy day", copyOk: "Day copied as text",
+      copyManual: "Put it in the box below — select and copy",
+      transferSummary: "Back up / move",
+      transferDesc: "To move to another device or keep a backup, copy the data below. Importing replaces everything.",
+      fill: "Fill with current data", importBtn: "Import",
+      importArm: "Confirm overwrite — click again",
+      importEmpty: "Paste data to import first",
+      importBad: "That isn't the right format",
+      fillOk: "Filled with your current data",
+      importDone: "Imported {n} entries",
+      ioLabel: "Backup data",
+      del: "Delete", nameAria: "Food name", kcalAria: "Calories",
+      langGroup: "Language",
+      shareTotal: "Total: {kcal} / {goal} kcal"
+    },
+    ko: {
+      htmlLang: "ko", locale: "ko-KR",
+      eyebrow: "개인용 · 이 브라우저에 저장됨",
+      eyebrowSync: "공유 · 링크가 있는 모두와 실시간 동기화",
+      title: "칼로리 기록",
+      subtitle: "먹은 것을 기록하고, 하루 총 칼로리를 확인하고, 나에게 맞는 목표를 정해 보세요.",
+      subtitleSync: "먹은 것을 기록하고 하루 총량을 목표와 비교하세요. 모든 내용이 기기와 링크를 공유한 사람들 사이에서 실시간으로 동기화됩니다.",
+      prevDay: "이전 날", nextDay: "다음 날", today: "오늘로",
+      goalLabel: "목표", editGoal: "하루 목표 수정",
+      left: "{n} kcal 남음", over: "{n} kcal 초과",
+      foodPlaceholder: "음식", kcalPlaceholder: "kcal", add: "추가",
+      mealLabel: "구분",
+      breakfast: "아침", lunch: "점심", dinner: "저녁", snack: "간식",
+      emptyDay: "이 날 기록이 없어요.",
+      count: "{n}개 · {kcal} kcal", countOne: "{n}개 · {kcal} kcal",
+      copy: "하루치 복사", copyOk: "하루치를 텍스트로 복사했어요",
+      copyManual: "아래 칸에 넣었어요 — 선택해서 복사하세요",
+      transferSummary: "백업 / 옮기기",
+      transferDesc: "다른 기기로 옮기거나 백업하려면 아래 데이터를 복사해 두세요. 가져오기를 하면 전체를 덮어씁니다.",
+      fill: "현재 데이터 채우기", importBtn: "가져오기",
+      importArm: "덮어쓰기 확인 — 다시 누르기",
+      importEmpty: "가져올 데이터를 붙여넣어 주세요",
+      importBad: "형식이 올바르지 않아요",
+      fillOk: "현재 데이터를 채웠어요",
+      importDone: "{n}개 항목을 가져왔어요",
+      ioLabel: "백업 데이터",
+      del: "삭제", nameAria: "음식 이름", kcalAria: "칼로리",
+      langGroup: "언어",
+      shareTotal: "합계: {kcal} / {goal} kcal"
+    }
+  };
+
+  function loadLang() {
+    try { return localStorage.getItem(LANG_KEY) === "ko" ? "ko" : "en"; } catch (e) { return "en"; }
+  }
+  var lang = loadLang();
+  function T(k) { return (I18N[lang] && I18N[lang][k] != null) ? I18N[lang][k] : I18N.en[k]; }
+  function fmt(s, o) { return String(s).replace(/\{(\w+)\}/g, function (m, k) { return o[k] != null ? o[k] : m; }); }
+  function nf(n) {
+    var v = Number(n) || 0;
+    try { return v.toLocaleString(T("locale")); } catch (e) { return String(v); }
+  }
+
+  /* --- elements --- */
+  var listEl = document.getElementById("list");
+  var formEl = document.getElementById("add-form");
+  var foodEl = document.getElementById("add-food");
+  var kcalEl = document.getElementById("add-kcal");
+  var mealPickerEl = document.getElementById("meal-picker");
+  var dateLabelEl = document.getElementById("date-label");
+  var todayBtn = document.getElementById("today-btn");
+  var prevBtn = document.getElementById("prev-day");
+  var nextBtn = document.getElementById("next-day");
+  var totalNumEl = document.getElementById("total-num");
+  var goalBtn = document.getElementById("goal-btn");
+  var progressFill = document.getElementById("progress-fill");
+  var remainingEl = document.getElementById("remaining");
+  var countEl = document.getElementById("count");
+  var copyBtn = document.getElementById("copy-btn");
+  var ioBox = document.getElementById("io-box");
+  var exportBtn = document.getElementById("export-btn");
+  var importBtn = document.getElementById("import-btn");
+  var toastEl = document.getElementById("toast");
+  var langToggleEl = document.getElementById("lang-toggle");
+  var foodListEl = document.getElementById("food-list");
+
+  var pendingMeal = defaultMeal();
+  var selectedDate = todayStr();
+  var importArmed = false;
+  var importArmTimer;
+
+  var syncActive = false;
+  var syncApi = null;
+  var myRev = null;
+  var reconciled = false;
+  var pushTimer = null;
+
+  function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+  function shiftDate(str, delta) {
+    var p = str.split("-");
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    d.setDate(d.getDate() + delta);
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+  function defaultMeal() {
+    var h = new Date().getHours();
+    if (h < 11) return "breakfast";
+    if (h < 15) return "lunch";
+    if (h < 21) return "dinner";
+    return "snack";
+  }
+
+  /* --- data --- */
+  function load() {
+    try {
+      var raw = localStorage.getItem(DATA_KEY);
+      if (!raw) return { entries: [], goal: DEFAULT_GOAL };
+      var p = JSON.parse(raw);
+      return {
+        entries: Array.isArray(p.entries) ? p.entries : [],
+        goal: typeof p.goal === "number" && p.goal > 0 ? p.goal : DEFAULT_GOAL
+      };
+    } catch (e) { return { entries: [], goal: DEFAULT_GOAL }; }
+  }
+
+  function normalizeEntries(list) {
+    return (Array.isArray(list) ? list : []).map(function (it) {
+      return {
+        id: it.id || makeId(),
+        name: String(it.name || "").slice(0, 80),
+        kcal: Math.max(0, Math.min(99999, Math.round(Number(it.kcal) || 0))),
+        meal: MEALS.indexOf(it.meal) >= 0 ? it.meal : "snack",
+        date: /^\d{4}-\d{2}-\d{2}$/.test(it.date) ? it.date : todayStr(),
+        createdAt: it.createdAt || Date.now()
+      };
+    }).filter(function (it) { return it.name || it.kcal; });
+  }
+
+  var store = load();
+  var entries = normalizeEntries(store.entries);
+  var goal = store.goal;
+
+  function saveLocal() {
+    try { localStorage.setItem(DATA_KEY, JSON.stringify({ entries: entries, goal: goal })); } catch (e) {}
+  }
+  function save() { saveLocal(); schedulePush(); }
+
+  var toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2100);
+  }
+
+  function copyText(text, okMsg) {
+    var done = function () { toast(okMsg); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else { fallbackCopy(text, done); }
+  }
+  function fallbackCopy(text, done) {
+    var ok = false;
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch (e) { ok = false; }
+    if (ok) { done(); return; }
+    ioBox.value = text;
+    var host = ioBox.closest("details"); if (host) host.open = true;
+    ioBox.focus(); ioBox.select();
+    toast(T("copyManual"));
+  }
+
+  /* --- meal picker --- */
+  function setMealPicker(val) {
+    pendingMeal = val;
+    mealPickerEl.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("data-active", b.getAttribute("data-val") === val ? "true" : "false");
+    });
+  }
+  mealPickerEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (b) setMealPicker(b.getAttribute("data-val"));
+  });
+
+  /* --- date nav --- */
+  prevBtn.addEventListener("click", function () { selectedDate = shiftDate(selectedDate, -1); render(); });
+  nextBtn.addEventListener("click", function () { selectedDate = shiftDate(selectedDate, 1); render(); });
+  todayBtn.addEventListener("click", function () { selectedDate = todayStr(); render(); });
+
+  /* --- goal editing --- */
+  goalBtn.addEventListener("click", function () {
+    var input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.className = "goal-input";
+    input.value = goal;
+    goalBtn.replaceWith(input);
+    input.focus();
+    input.select();
+    var commit = function () {
+      var v = Math.round(Number(String(input.value).replace(/[^0-9]/g, "")) || 0);
+      if (v > 0) { goal = Math.min(99999, v); save(); }
+      input.replaceWith(goalBtn);
+      render();
+    };
+    input.addEventListener("blur", commit);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+      if (e.key === "Escape") { input.value = goal; input.blur(); }
+    });
+  });
+
+  /* --- render --- */
+  function dayEntries() {
+    return entries.filter(function (it) { return it.date === selectedDate; });
+  }
+
+  function bindKcal(inp, item) {
+    inp.value = item.kcal ? nf(item.kcal) : "";
+    inp.addEventListener("focus", function () { inp.value = item.kcal || ""; });
+    inp.addEventListener("blur", function () {
+      var v = Math.max(0, Math.min(99999, Math.round(Number(String(inp.value).replace(/[^0-9]/g, "")) || 0)));
+      item.kcal = v;
+      save();
+      render();
+    });
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } });
+  }
+
+  function render() {
+    // date bar
+    var p = selectedDate.split("-");
+    var dObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    try {
+      dateLabelEl.textContent = dObj.toLocaleDateString(T("locale"), { weekday: "long", month: "long", day: "numeric" });
+    } catch (e) {
+      dateLabelEl.textContent = selectedDate;
+    }
+    todayBtn.hidden = (selectedDate === todayStr());
+
+    var day = dayEntries();
+    var total = day.reduce(function (s, it) { return s + it.kcal; }, 0);
+
+    totalNumEl.textContent = nf(total);
+    goalBtn.textContent = nf(goal);
+
+    var pct = goal > 0 ? (total / goal) * 100 : 0;
+    progressFill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    var over = total > goal;
+    progressFill.classList.toggle("over", over);
+    var diff = Math.abs(goal - total);
+    remainingEl.textContent = over ? fmt(T("over"), { n: nf(diff) }) : fmt(T("left"), { n: nf(diff) });
+    remainingEl.classList.toggle("over", over);
+
+    // list grouped by meal
+    listEl.innerHTML = "";
+    if (day.length === 0) {
+      var empty = document.createElement("li");
+      empty.className = "empty-state";
+      var g = document.createElement("span");
+      g.className = "glyph"; g.textContent = "🍽";
+      empty.appendChild(g);
+      empty.appendChild(document.createTextNode(T("emptyDay")));
+      listEl.appendChild(empty);
+    } else {
+      MEALS.forEach(function (meal) {
+        var group = day.filter(function (it) { return it.meal === meal; })
+          .sort(function (a, b) { return a.createdAt - b.createdAt; });
+        if (group.length === 0) return;
+        var sub = group.reduce(function (s, it) { return s + it.kcal; }, 0);
+
+        var wrap = document.createElement("li");
+        wrap.className = "meal-group";
+
+        var head = document.createElement("div");
+        head.className = "meal-head";
+        var mname = document.createElement("span");
+        mname.className = "m-" + meal;
+        mname.textContent = T(meal);
+        var msub = document.createElement("span");
+        msub.className = "subtotal";
+        msub.textContent = nf(sub) + " kcal";
+        head.appendChild(mname);
+        head.appendChild(msub);
+        wrap.appendChild(head);
+
+        var inner = document.createElement("ul");
+        inner.style.listStyle = "none";
+        inner.style.margin = "0";
+        inner.style.padding = "0";
+
+        group.forEach(function (item) {
+          var li = document.createElement("li");
+          li.className = "entry";
+
+          var name = document.createElement("span");
+          name.className = "entry-name";
+          name.textContent = item.name;
+          name.contentEditable = "true";
+          name.spellcheck = false;
+          name.setAttribute("role", "textbox");
+          name.setAttribute("aria-label", T("nameAria"));
+          name.addEventListener("blur", function () {
+            var val = name.textContent.replace(/\s+/g, " ").trim();
+            if (val === "" && !item.kcal) {
+              entries = entries.filter(function (it) { return it !== item; });
+              save(); render(); return;
+            }
+            item.name = val.slice(0, 80);
+            name.textContent = item.name;
+            save();
+          });
+          name.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") { e.preventDefault(); name.blur(); }
+          });
+
+          var kc = document.createElement("input");
+          kc.type = "text";
+          kc.inputMode = "numeric";
+          kc.className = "entry-kcal";
+          kc.setAttribute("aria-label", T("kcalAria"));
+          bindKcal(kc, item);
+
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "del-btn";
+          del.setAttribute("aria-label", T("del"));
+          del.textContent = "✕";
+          del.addEventListener("click", function () {
+            entries = entries.filter(function (it) { return it !== item; });
+            save(); render();
+          });
+
+          li.appendChild(name);
+          li.appendChild(kc);
+          li.appendChild(del);
+          inner.appendChild(li);
+        });
+
+        wrap.appendChild(inner);
+        listEl.appendChild(wrap);
+      });
+    }
+
+    countEl.innerHTML = day.length === 0 ? "" :
+      fmt(T(day.length === 1 ? "countOne" : "count"),
+        { n: "<strong>" + day.length + "</strong>", kcal: nf(total) });
+
+    // food name suggestions (recent distinct names)
+    var names = [];
+    var seen = {};
+    entries.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }).forEach(function (it) {
+      var n = it.name.trim();
+      if (n && !seen[n.toLowerCase()]) { seen[n.toLowerCase()] = true; names.push(n); }
+    });
+    foodListEl.innerHTML = "";
+    names.slice(0, 40).forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n;
+      foodListEl.appendChild(o);
+    });
+  }
+
+  /* --- add --- */
+  formEl.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = foodEl.value.replace(/\s+/g, " ").trim();
+    var kcal = Math.max(0, Math.min(99999, Math.round(Number(String(kcalEl.value).replace(/[^0-9]/g, "")) || 0)));
+    if (!name && !kcal) return;
+
+    // reuse last kcal for a known food when kcal left blank
+    if (!kcal && name) {
+      var prev = entries.slice().sort(function (a, b) { return b.createdAt - a.createdAt; })
+        .filter(function (it) { return it.name.toLowerCase() === name.toLowerCase() && it.kcal; })[0];
+      if (prev) kcal = prev.kcal;
+    }
+
+    entries.push({
+      id: makeId(),
+      name: name || T(pendingMeal),
+      kcal: kcal,
+      meal: pendingMeal,
+      date: selectedDate,
+      createdAt: Date.now()
+    });
+    save();
+    foodEl.value = "";
+    kcalEl.value = "";
+    foodEl.focus();
+    render();
+  });
+
+  /* --- copy / share --- */
+  function buildShareText() {
+    var day = dayEntries();
+    var p = selectedDate.split("-");
+    var dObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    var dateStr;
+    try { dateStr = dObj.toLocaleDateString(T("locale"), { weekday: "long", year: "numeric", month: "long", day: "numeric" }); }
+    catch (e) { dateStr = selectedDate; }
+
+    var lines = ["🔥 " + dateStr, ""];
+    var total = 0;
+    MEALS.forEach(function (meal) {
+      var group = day.filter(function (it) { return it.meal === meal; })
+        .sort(function (a, b) { return a.createdAt - b.createdAt; });
+      if (group.length === 0) return;
+      lines.push("[" + T(meal) + "]");
+      group.forEach(function (it) {
+        total += it.kcal;
+        lines.push("  " + it.name + " — " + nf(it.kcal) + " kcal");
+      });
+    });
+    lines.push("");
+    lines.push(fmt(T("shareTotal"), { kcal: nf(total), goal: nf(goal) }));
+    return lines.join("\n").trim();
+  }
+  copyBtn.addEventListener("click", function () { copyText(buildShareText(), T("copyOk")); });
+
+  /* --- backup / transfer --- */
+  exportBtn.addEventListener("click", function () {
+    ioBox.value = JSON.stringify({ entries: entries, goal: goal }, null, 2);
+    ioBox.focus(); ioBox.select();
+    toast(T("fillOk"));
+  });
+
+  importBtn.addEventListener("click", function () {
+    var raw = ioBox.value.trim();
+    if (!raw) { toast(T("importEmpty")); return; }
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { toast(T("importBad")); return; }
+    var incoming = Array.isArray(parsed) ? { entries: parsed, goal: goal } : parsed;
+    if (!incoming || !Array.isArray(incoming.entries)) { toast(T("importBad")); return; }
+    if ((entries.length || goal !== DEFAULT_GOAL) && !importArmed) {
+      importArmed = true;
+      importBtn.textContent = T("importArm");
+      clearTimeout(importArmTimer);
+      importArmTimer = setTimeout(function () { importArmed = false; importBtn.textContent = T("importBtn"); }, 4000);
+      return;
+    }
+    clearTimeout(importArmTimer);
+    importArmed = false;
+    importBtn.textContent = T("importBtn");
+    entries = normalizeEntries(incoming.entries);
+    if (typeof incoming.goal === "number" && incoming.goal > 0) goal = Math.min(99999, Math.round(incoming.goal));
+    save();
+    render();
+    toast(fmt(T("importDone"), { n: entries.length }));
+  });
+
+  /* --- live sync (Firebase; optional) --- */
+  function schedulePush() {
+    if (!syncApi) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushRemote, 600);
+  }
+  function pushRemote() {
+    if (!syncApi) return;
+    var rev = makeId();
+    myRev = rev;
+    var attempt = syncApi.push({ entries: entries, goal: goal, rev: rev, updatedAt: Date.now() });
+    if (attempt && typeof attempt.catch === "function") {
+      attempt.catch(function () { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 4000); });
+    }
+  }
+  function mergeById(remoteList, localList) {
+    var seen = {}, out = [];
+    remoteList.forEach(function (it) { if (it && it.id) { seen[it.id] = true; out.push(it); } });
+    localList.forEach(function (it) { if (it && it.id && !seen[it.id]) out.push(it); });
+    return out;
+  }
+  function adoptRemote(d) {
+    entries = normalizeEntries(d.entries);
+    if (typeof d.goal === "number" && d.goal > 0) goal = Math.min(99999, Math.round(d.goal));
+    saveLocal();
+    render();
+  }
+  function onRemote(d) {
+    var goLive = function () { if (!syncActive) { syncActive = true; applyLang(); } };
+
+    if (d === null || d === undefined || typeof d !== "object") {
+      reconciled = true; goLive();
+      if (entries.length || goal !== DEFAULT_GOAL) pushRemote();
+      return;
+    }
+    var remoteEntries = Array.isArray(d.entries) ? d.entries : [];
+
+    if (d.rev && d.rev === myRev) { reconciled = true; goLive(); return; }
+
+    if (!reconciled) {
+      reconciled = true;
+      if (entries.length && remoteEntries.length) {
+        entries = normalizeEntries(mergeById(normalizeEntries(remoteEntries), entries));
+        if (typeof d.goal === "number" && d.goal > 0) goal = Math.min(99999, Math.round(d.goal));
+        saveLocal(); render(); pushRemote();
+      } else if (remoteEntries.length) {
+        adoptRemote(d);
+      } else if (entries.length || goal !== DEFAULT_GOAL) {
+        pushRemote();
+      } else if (typeof d.goal === "number" && d.goal > 0) {
+        adoptRemote(d);
+      }
+      goLive();
+      return;
+    }
+
+    adoptRemote(d);
+    goLive();
+  }
+  function setupSync(api) {
+    syncApi = api;
+    api.ready.then(function (ok) {
+      if (!ok) { syncApi = null; return; }
+      api.subscribe(onRemote);
+    }).catch(function () { syncApi = null; });
+  }
+  function whenSyncDecided(cb) {
+    if (window.CC_SYNC_DECIDED) { cb(window.CC_SYNC || null); return; }
+    var done = false;
+    var fire = function () { if (done) return; done = true; cb(window.CC_SYNC || null); };
+    window.addEventListener("cc-sync-decided", fire, { once: true });
+    setTimeout(fire, 12000);
+  }
+
+  /* --- service worker --- */
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+
+  /* --- language --- */
+  function setText(id, s) { var el = document.getElementById(id); if (el) el.textContent = s; }
+
+  function applyLang() {
+    document.documentElement.lang = T("htmlLang");
+    document.title = T("title");
+    setText("eyebrow", T(syncActive ? "eyebrowSync" : "eyebrow"));
+    setText("app-title", T("title"));
+    setText("subtitle", T(syncActive ? "subtitleSync" : "subtitle"));
+    prevBtn.setAttribute("aria-label", T("prevDay"));
+    nextBtn.setAttribute("aria-label", T("nextDay"));
+    setText("today-btn", T("today"));
+    setText("goal-label", T("goalLabel"));
+    goalBtn.setAttribute("aria-label", T("editGoal"));
+    foodEl.placeholder = T("foodPlaceholder");
+    foodEl.setAttribute("aria-label", T("nameAria"));
+    kcalEl.placeholder = T("kcalPlaceholder");
+    kcalEl.setAttribute("aria-label", T("kcalAria"));
+    setText("add-btn", T("add"));
+    setText("meal-label", T("mealLabel"));
+
+    var mb = mealPickerEl.querySelectorAll("button");
+    MEALS.forEach(function (m, i) { if (mb[i]) mb[i].textContent = T(m); });
+    mealPickerEl.setAttribute("aria-label", T("mealLabel"));
+
+    setText("copy-btn", T("copy"));
+    setText("transfer-summary", T("transferSummary"));
+    setText("transfer-desc", T("transferDesc"));
+    setText("export-btn", T("fill"));
+    importBtn.textContent = importArmed ? T("importArm") : T("importBtn");
+    ioBox.setAttribute("aria-label", T("ioLabel"));
+
+    langToggleEl.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("data-active", b.getAttribute("data-lang") === lang ? "true" : "false");
+    });
+    langToggleEl.setAttribute("aria-label", T("langGroup"));
+
+    render();
+  }
+
+  langToggleEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    lang = b.getAttribute("data-lang") === "ko" ? "ko" : "en";
+    try { localStorage.setItem(LANG_KEY, lang); } catch (err) {}
+    applyLang();
+  });
+
+  /* --- init --- */
+  registerServiceWorker();
+  setMealPicker(pendingMeal);
+  applyLang();
+  whenSyncDecided(function (api) { if (api) setupSync(api); });
+})();
+</script>
+
+</body>
+</html>
