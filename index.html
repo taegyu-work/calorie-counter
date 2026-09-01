@@ -244,7 +244,77 @@
     margin-top: 22px;
   }
 
-  .view-toggle .segmented button { padding: 6px 18px; }
+  .view-toggle .segmented button { padding: 6px 15px; }
+
+  /* --- week overview --- */
+
+  .week { margin-top: 18px; }
+
+  .week-row {
+    display: grid;
+    grid-template-columns: 62px 1fr 58px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 2px;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+  }
+
+  .week-row:hover .wr-day { color: var(--accent); }
+  .week-row.today .wr-day { color: var(--accent); font-weight: 700; }
+  .week-row:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  .wr-day {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wr-track {
+    height: 8px;
+    background: var(--surface-2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .wr-fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.3s ease, background 0.2s ease;
+  }
+
+  .wr-fill.under { background: var(--good); }
+  .wr-fill.over { background: var(--danger); }
+
+  .wr-kcal {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wr-kcal.none { color: var(--text-faint); font-weight: 400; }
+  .wr-kcal.over { color: var(--danger); }
+  .wr-kcal.under { color: var(--good); }
+
+  .week-summary {
+    margin-top: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
 
   /* --- calendar --- */
 
@@ -774,6 +844,7 @@
   <div class="view-toggle">
     <span class="segmented" id="view-toggle" role="group">
       <button type="button" data-view="day"></button>
+      <button type="button" data-view="week"></button>
       <button type="button" data-view="month"></button>
     </span>
   </div>
@@ -786,6 +857,11 @@
     </div>
     <button type="button" class="date-nav" id="next-day" aria-label="">&#8250;</button>
   </div>
+
+  <section class="week" id="week" hidden>
+    <div id="week-rows"></div>
+    <div class="week-summary" id="week-summary"></div>
+  </section>
 
   <section class="cal" id="cal" hidden>
     <div class="cal-weekdays" id="cal-weekdays"></div>
@@ -935,8 +1011,11 @@
       subtitle: "Log what you eat, keep an eye on the daily total, and set a target that works for you.",
       subtitleSync: "Log what you eat and track the daily total against your target. Everything syncs live across your devices and anyone you share the link with.",
       prevDay: "Previous day", nextDay: "Next day", today: "Today",
+      prevWeek: "Previous week", nextWeek: "Next week", thisWeek: "This week",
       prevMonth: "Previous month", nextMonth: "Next month", thisMonth: "This month",
-      viewDay: "Day", viewMonth: "Calendar",
+      viewDay: "Day", viewWeek: "Week", viewMonth: "Month",
+      weekSummary: "{total} kcal total · avg {avg} / day · {ontarget} on target",
+      weekSummaryEmpty: "Nothing logged this week yet.",
       monthSummary: "{logged} days logged · avg {avg} kcal · {ontarget} on target",
       monthSummaryOne: "1 day logged · {avg} kcal · {ontarget} on target",
       monthSummaryEmpty: "Nothing logged this month yet.",
@@ -971,8 +1050,11 @@
       subtitle: "먹은 것을 기록하고, 하루 총 칼로리를 확인하고, 나에게 맞는 목표를 정해 보세요.",
       subtitleSync: "먹은 것을 기록하고 하루 총량을 목표와 비교하세요. 모든 내용이 기기와 링크를 공유한 사람들 사이에서 실시간으로 동기화됩니다.",
       prevDay: "이전 날", nextDay: "다음 날", today: "오늘로",
+      prevWeek: "이전 주", nextWeek: "다음 주", thisWeek: "이번 주",
       prevMonth: "이전 달", nextMonth: "다음 달", thisMonth: "이번 달",
-      viewDay: "일별", viewMonth: "달력",
+      viewDay: "일별", viewWeek: "주별", viewMonth: "월별",
+      weekSummary: "총 {total} kcal · 하루 평균 {avg} · 목표 달성 {ontarget}일",
+      weekSummaryEmpty: "이번 주 아직 기록이 없어요.",
       monthSummary: "{logged}일 기록 · 평균 {avg} kcal · 목표 달성 {ontarget}일",
       monthSummaryOne: "1일 기록 · {avg} kcal · 목표 달성 {ontarget}일",
       monthSummaryEmpty: "이번 달 아직 기록이 없어요.",
@@ -1040,12 +1122,16 @@
   var calGridEl = document.getElementById("cal-grid");
   var monthSummaryEl = document.getElementById("month-summary");
   var calLegendEl = document.getElementById("cal-legend");
+  var weekEl = document.getElementById("week");
+  var weekRowsEl = document.getElementById("week-rows");
+  var weekSummaryEl = document.getElementById("week-summary");
   var dayOnlyEls = document.querySelectorAll(".day-only");
 
   var pendingMeal = defaultMeal();
   var selectedDate = todayStr();
-  var viewMode = "day";
-  var calMonth = todayStr().slice(0, 7);   // "YYYY-MM"
+  var viewMode = "day";                       // "day" | "week" | "month"
+  var calMonth = todayStr().slice(0, 7);      // "YYYY-MM"
+  var weekStart = weekStartOf(todayStr());    // "YYYY-MM-DD" (Sunday)
   var importArmed = false;
   var importArmTimer;
 
@@ -1072,6 +1158,12 @@
     var p = ym.split("-");
     var d = new Date(Number(p[0]), Number(p[1]) - 1 + delta, 1);
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1);
+  }
+  function weekStartOf(str) {
+    var p = str.split("-");
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    d.setDate(d.getDate() - d.getDay());   // back to Sunday
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
   }
   function defaultMeal() {
     var h = new Date().getHours();
@@ -1158,19 +1250,18 @@
     if (b) setMealPicker(b.getAttribute("data-val"));
   });
 
-  /* --- date / month nav --- */
-  prevBtn.addEventListener("click", function () {
-    if (viewMode === "month") calMonth = shiftMonth(calMonth, -1);
-    else selectedDate = shiftDate(selectedDate, -1);
+  /* --- date / week / month nav --- */
+  function stepNav(delta) {
+    if (viewMode === "month") calMonth = shiftMonth(calMonth, delta);
+    else if (viewMode === "week") weekStart = shiftDate(weekStart, delta * 7);
+    else selectedDate = shiftDate(selectedDate, delta);
     render();
-  });
-  nextBtn.addEventListener("click", function () {
-    if (viewMode === "month") calMonth = shiftMonth(calMonth, 1);
-    else selectedDate = shiftDate(selectedDate, 1);
-    render();
-  });
+  }
+  prevBtn.addEventListener("click", function () { stepNav(-1); });
+  nextBtn.addEventListener("click", function () { stepNav(1); });
   todayBtn.addEventListener("click", function () {
     if (viewMode === "month") calMonth = todayStr().slice(0, 7);
+    else if (viewMode === "week") weekStart = weekStartOf(todayStr());
     else selectedDate = todayStr();
     render();
   });
@@ -1234,13 +1325,16 @@
   }
 
   function render() {
-    var isMonth = (viewMode === "month");
-    calEl.hidden = !isMonth;
-    dayOnlyEls.forEach(function (el) { el.hidden = isMonth; });
-    prevBtn.setAttribute("aria-label", T(isMonth ? "prevMonth" : "prevDay"));
-    nextBtn.setAttribute("aria-label", T(isMonth ? "nextMonth" : "nextDay"));
+    var mode = viewMode;
+    calEl.hidden = mode !== "month";
+    weekEl.hidden = mode !== "week";
+    dayOnlyEls.forEach(function (el) { el.hidden = mode !== "day"; });
+    prevBtn.setAttribute("aria-label",
+      T(mode === "month" ? "prevMonth" : mode === "week" ? "prevWeek" : "prevDay"));
+    nextBtn.setAttribute("aria-label",
+      T(mode === "month" ? "nextMonth" : mode === "week" ? "nextWeek" : "nextDay"));
 
-    if (isMonth) {
+    if (mode === "month") {
       var mp = calMonth.split("-");
       var mObj = new Date(Number(mp[0]), Number(mp[1]) - 1, 1);
       try {
@@ -1249,6 +1343,22 @@
       todayBtn.hidden = (calMonth === todayStr().slice(0, 7));
       todayBtn.textContent = T("thisMonth");
       renderCalendar();
+      return;
+    }
+
+    if (mode === "week") {
+      var wEnd = shiftDate(weekStart, 6);
+      var wp0 = weekStart.split("-"), wp1 = wEnd.split("-");
+      var wd0 = new Date(Number(wp0[0]), Number(wp0[1]) - 1, Number(wp0[2]));
+      var wd1 = new Date(Number(wp1[0]), Number(wp1[1]) - 1, Number(wp1[2]));
+      try {
+        var opt = { month: "short", day: "numeric" };
+        dateLabelEl.textContent = wd0.toLocaleDateString(T("locale"), opt) + " – " +
+          wd1.toLocaleDateString(T("locale"), opt);
+      } catch (e) { dateLabelEl.textContent = weekStart + " – " + wEnd; }
+      todayBtn.hidden = (weekStart === weekStartOf(todayStr()));
+      todayBtn.textContent = T("thisWeek");
+      renderWeek();
       return;
     }
 
@@ -1394,6 +1504,75 @@
       return s + "k";
     }
     return String(n);
+  }
+
+  /* --- week overview --- */
+  function renderWeek() {
+    var todayS = todayStr();
+    weekRowsEl.innerHTML = "";
+    var weekTotal = 0, loggedDays = 0, onTarget = 0;
+
+    for (var i = 0; i < 7; i++) {
+      var ds = shiftDate(weekStart, i);
+      var total = dayTotal(ds);
+      var p = ds.split("-");
+      var dObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+
+      var row = document.createElement("button");
+      row.type = "button";
+      row.className = "week-row" + (ds === todayS ? " today" : "");
+
+      var dayLbl = document.createElement("span");
+      dayLbl.className = "wr-day";
+      try {
+        dayLbl.textContent = dObj.toLocaleDateString(T("locale"), { weekday: "short" }) + " " + Number(p[2]);
+      } catch (e) { dayLbl.textContent = ds.slice(5); }
+
+      var track = document.createElement("span");
+      track.className = "wr-track";
+      var fill = document.createElement("span");
+      fill.className = "wr-fill";
+      var pct = goal > 0 ? (total / goal) * 100 : 0;
+      fill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+
+      var kc = document.createElement("span");
+      kc.className = "wr-kcal";
+
+      if (total > 0) {
+        weekTotal += total;
+        loggedDays++;
+        if (total <= goal) { fill.classList.add("under"); kc.classList.add("under"); onTarget++; }
+        else { fill.classList.add("over"); kc.classList.add("over"); }
+        kc.textContent = nf(total);
+      } else {
+        kc.classList.add("none");
+        kc.textContent = "–";
+      }
+
+      track.appendChild(fill);
+      row.appendChild(dayLbl);
+      row.appendChild(track);
+      row.appendChild(kc);
+      row.setAttribute("aria-label", ds + (total > 0 ? " · " + nf(total) + " kcal" : ""));
+
+      (function (date) {
+        row.addEventListener("click", function () {
+          selectedDate = date;
+          setViewToggle("day");
+          render();
+        });
+      })(ds);
+
+      weekRowsEl.appendChild(row);
+    }
+
+    weekSummaryEl.textContent = loggedDays === 0
+      ? T("weekSummaryEmpty")
+      : fmt(T("weekSummary"), {
+          total: nf(weekTotal),
+          avg: nf(Math.round(weekTotal / loggedDays)),
+          ontarget: onTarget
+        });
   }
 
   function renderCalendar() {
@@ -1641,8 +1820,27 @@
   /* --- service worker --- */
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
+    var reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
     window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () {});
+      navigator.serviceWorker.register("sw.js").then(function (reg) {
+        var ping = function () {
+          if (reg.waiting) reg.waiting.postMessage("skip-waiting");
+        };
+        ping();
+        reg.addEventListener("updatefound", function () {
+          var nw = reg.installing;
+          if (nw) nw.addEventListener("statechange", function () {
+            if (nw.state === "installed" && navigator.serviceWorker.controller) nw.postMessage("skip-waiting");
+          });
+        });
+        reg.update();
+        setInterval(function () { reg.update(); }, 60 * 60 * 1000);
+      }).catch(function () {});
     });
   }
 
@@ -1657,8 +1855,9 @@
     setText("subtitle", T(syncActive ? "subtitleSync" : "subtitle"));
     var vb = viewToggleEl.querySelectorAll("button");
     if (vb[0]) vb[0].textContent = T("viewDay");
-    if (vb[1]) vb[1].textContent = T("viewMonth");
-    viewToggleEl.setAttribute("aria-label", T("viewMonth"));
+    if (vb[1]) vb[1].textContent = T("viewWeek");
+    if (vb[2]) vb[2].textContent = T("viewMonth");
+    viewToggleEl.setAttribute("aria-label", T("viewWeek"));
     setText("goal-label", T("goalLabel"));
     goalBtn.setAttribute("aria-label", T("editGoal"));
     foodEl.placeholder = T("foodPlaceholder");
