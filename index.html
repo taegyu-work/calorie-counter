@@ -99,6 +99,8 @@
 
   * { box-sizing: border-box; }
 
+  [hidden] { display: none !important; }
+
   body {
     margin: 0;
     background: var(--bg);
@@ -233,6 +235,117 @@
   }
 
   .today-btn[hidden] { display: none; }
+
+  /* --- view toggle --- */
+
+  .view-toggle {
+    display: flex;
+    justify-content: center;
+    margin-top: 22px;
+  }
+
+  .view-toggle .segmented button { padding: 6px 18px; }
+
+  /* --- calendar --- */
+
+  .cal { margin-top: 18px; }
+
+  .cal-weekdays,
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+
+  .cal-weekday {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding-bottom: 4px;
+  }
+
+  .cal-grid { margin-top: 2px; }
+
+  .cal-cell {
+    min-height: 60px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 6px;
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.12s ease;
+  }
+
+  .cal-cell:hover { border-color: var(--accent); }
+  .cal-cell.blank { border: none; background: none; cursor: default; }
+  .cal-cell.future { opacity: 0.5; }
+
+  .cal-cell .cd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cal-cell .ck {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    align-self: flex-end;
+  }
+
+  .cal-cell .ck.none { color: var(--text-faint); font-weight: 400; }
+
+  .cal-cell.under { background: var(--good-soft); border-color: var(--good-soft); }
+  .cal-cell.under .ck { color: var(--good); }
+  .cal-cell.over { background: var(--danger-soft); border-color: var(--danger-soft); }
+  .cal-cell.over .ck { color: var(--danger); }
+  .cal-cell.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+  .cal-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  .month-summary {
+    margin-top: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cal-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+  }
+
+  .cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+  .cal-legend i {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .cal-legend i.l-under { background: var(--good); }
+  .cal-legend i.l-over { background: var(--danger); }
+  .cal-legend i.l-none { background: var(--border-strong); }
 
   /* --- summary / progress --- */
 
@@ -658,6 +771,13 @@
     <p class="subtitle" id="subtitle"></p>
   </header>
 
+  <div class="view-toggle">
+    <span class="segmented" id="view-toggle" role="group">
+      <button type="button" data-view="day"></button>
+      <button type="button" data-view="month"></button>
+    </span>
+  </div>
+
   <div class="datebar">
     <button type="button" class="date-nav" id="prev-day" aria-label="">&#8249;</button>
     <div class="date-center">
@@ -667,7 +787,14 @@
     <button type="button" class="date-nav" id="next-day" aria-label="">&#8250;</button>
   </div>
 
-  <section class="summary">
+  <section class="cal" id="cal" hidden>
+    <div class="cal-weekdays" id="cal-weekdays"></div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="month-summary" id="month-summary"></div>
+    <div class="cal-legend" id="cal-legend"></div>
+  </section>
+
+  <section class="summary day-only">
     <div class="summary-figures">
       <span class="total-kcal"><span id="total-num">0</span> <span class="unit">kcal</span></span>
       <span class="goal-wrap">
@@ -679,7 +806,7 @@
     <div class="remaining" id="remaining"></div>
   </section>
 
-  <form class="add-form" id="add-form" autocomplete="off">
+  <form class="add-form day-only" id="add-form" autocomplete="off">
     <div class="add-row">
       <input type="text" class="food" id="add-food" list="food-list" maxlength="80">
       <input type="text" inputmode="numeric" class="kcal" id="add-kcal" maxlength="5">
@@ -698,9 +825,9 @@
 
   <datalist id="food-list"></datalist>
 
-  <ul class="list" id="list"></ul>
+  <ul class="list day-only" id="list"></ul>
 
-  <footer class="status-bar">
+  <footer class="status-bar day-only">
     <span class="count" id="count"></span>
     <button class="icon-action" id="copy-btn"></button>
   </footer>
@@ -808,6 +935,12 @@
       subtitle: "Log what you eat, keep an eye on the daily total, and set a target that works for you.",
       subtitleSync: "Log what you eat and track the daily total against your target. Everything syncs live across your devices and anyone you share the link with.",
       prevDay: "Previous day", nextDay: "Next day", today: "Today",
+      prevMonth: "Previous month", nextMonth: "Next month", thisMonth: "This month",
+      viewDay: "Day", viewMonth: "Calendar",
+      monthSummary: "{logged} days logged · avg {avg} kcal · {ontarget} on target",
+      monthSummaryOne: "1 day logged · {avg} kcal · {ontarget} on target",
+      monthSummaryEmpty: "Nothing logged this month yet.",
+      legUnder: "on target", legOver: "over", legNone: "no log",
       goalLabel: "Goal", editGoal: "Edit daily goal",
       left: "{n} kcal left", over: "{n} kcal over",
       foodPlaceholder: "Food", kcalPlaceholder: "kcal", add: "Add",
@@ -838,6 +971,12 @@
       subtitle: "먹은 것을 기록하고, 하루 총 칼로리를 확인하고, 나에게 맞는 목표를 정해 보세요.",
       subtitleSync: "먹은 것을 기록하고 하루 총량을 목표와 비교하세요. 모든 내용이 기기와 링크를 공유한 사람들 사이에서 실시간으로 동기화됩니다.",
       prevDay: "이전 날", nextDay: "다음 날", today: "오늘로",
+      prevMonth: "이전 달", nextMonth: "다음 달", thisMonth: "이번 달",
+      viewDay: "일별", viewMonth: "달력",
+      monthSummary: "{logged}일 기록 · 평균 {avg} kcal · 목표 달성 {ontarget}일",
+      monthSummaryOne: "1일 기록 · {avg} kcal · 목표 달성 {ontarget}일",
+      monthSummaryEmpty: "이번 달 아직 기록이 없어요.",
+      legUnder: "목표 이내", legOver: "초과", legNone: "기록 없음",
       goalLabel: "목표", editGoal: "하루 목표 수정",
       left: "{n} kcal 남음", over: "{n} kcal 초과",
       foodPlaceholder: "음식", kcalPlaceholder: "kcal", add: "추가",
@@ -895,9 +1034,18 @@
   var toastEl = document.getElementById("toast");
   var langToggleEl = document.getElementById("lang-toggle");
   var foodListEl = document.getElementById("food-list");
+  var viewToggleEl = document.getElementById("view-toggle");
+  var calEl = document.getElementById("cal");
+  var calWeekdaysEl = document.getElementById("cal-weekdays");
+  var calGridEl = document.getElementById("cal-grid");
+  var monthSummaryEl = document.getElementById("month-summary");
+  var calLegendEl = document.getElementById("cal-legend");
+  var dayOnlyEls = document.querySelectorAll(".day-only");
 
   var pendingMeal = defaultMeal();
   var selectedDate = todayStr();
+  var viewMode = "day";
+  var calMonth = todayStr().slice(0, 7);   // "YYYY-MM"
   var importArmed = false;
   var importArmTimer;
 
@@ -919,6 +1067,11 @@
     var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
     d.setDate(d.getDate() + delta);
     return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+  function shiftMonth(ym, delta) {
+    var p = ym.split("-");
+    var d = new Date(Number(p[0]), Number(p[1]) - 1 + delta, 1);
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1);
   }
   function defaultMeal() {
     var h = new Date().getHours();
@@ -1005,10 +1158,36 @@
     if (b) setMealPicker(b.getAttribute("data-val"));
   });
 
-  /* --- date nav --- */
-  prevBtn.addEventListener("click", function () { selectedDate = shiftDate(selectedDate, -1); render(); });
-  nextBtn.addEventListener("click", function () { selectedDate = shiftDate(selectedDate, 1); render(); });
-  todayBtn.addEventListener("click", function () { selectedDate = todayStr(); render(); });
+  /* --- date / month nav --- */
+  prevBtn.addEventListener("click", function () {
+    if (viewMode === "month") calMonth = shiftMonth(calMonth, -1);
+    else selectedDate = shiftDate(selectedDate, -1);
+    render();
+  });
+  nextBtn.addEventListener("click", function () {
+    if (viewMode === "month") calMonth = shiftMonth(calMonth, 1);
+    else selectedDate = shiftDate(selectedDate, 1);
+    render();
+  });
+  todayBtn.addEventListener("click", function () {
+    if (viewMode === "month") calMonth = todayStr().slice(0, 7);
+    else selectedDate = todayStr();
+    render();
+  });
+
+  /* --- view toggle --- */
+  function setViewToggle(v) {
+    viewMode = v;
+    viewToggleEl.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("data-active", b.getAttribute("data-view") === v ? "true" : "false");
+    });
+  }
+  viewToggleEl.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    setViewToggle(b.getAttribute("data-view"));
+    render();
+  });
 
   /* --- goal editing --- */
   goalBtn.addEventListener("click", function () {
@@ -1050,7 +1229,31 @@
     inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } });
   }
 
+  function dayTotal(dateStr) {
+    return entries.reduce(function (s, it) { return it.date === dateStr ? s + it.kcal : s; }, 0);
+  }
+
   function render() {
+    var isMonth = (viewMode === "month");
+    calEl.hidden = !isMonth;
+    dayOnlyEls.forEach(function (el) { el.hidden = isMonth; });
+    prevBtn.setAttribute("aria-label", T(isMonth ? "prevMonth" : "prevDay"));
+    nextBtn.setAttribute("aria-label", T(isMonth ? "nextMonth" : "nextDay"));
+
+    if (isMonth) {
+      var mp = calMonth.split("-");
+      var mObj = new Date(Number(mp[0]), Number(mp[1]) - 1, 1);
+      try {
+        dateLabelEl.textContent = mObj.toLocaleDateString(T("locale"), { month: "long", year: "numeric" });
+      } catch (e) { dateLabelEl.textContent = calMonth; }
+      todayBtn.hidden = (calMonth === todayStr().slice(0, 7));
+      todayBtn.textContent = T("thisMonth");
+      renderCalendar();
+      return;
+    }
+
+    todayBtn.textContent = T("today");
+
     // date bar
     var p = selectedDate.split("-");
     var dObj = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
@@ -1182,6 +1385,96 @@
       o.value = n;
       foodListEl.appendChild(o);
     });
+  }
+
+  /* --- calendar --- */
+  function compactKcal(n) {
+    if (n >= 1000) {
+      var s = (n / 1000).toFixed(1).replace(/\.0$/, "");
+      return s + "k";
+    }
+    return String(n);
+  }
+
+  function renderCalendar() {
+    var mp = calMonth.split("-");
+    var year = Number(mp[0]);
+    var month0 = Number(mp[1]) - 1;
+    var first = new Date(year, month0, 1);
+    var startDow = first.getDay();               // 0 = Sunday
+    var daysInMonth = new Date(year, month0 + 1, 0).getDate();
+    var todayS = todayStr();
+
+    // weekday headers (locale, Sunday-first)
+    calWeekdaysEl.innerHTML = "";
+    for (var w = 0; w < 7; w++) {
+      var wd = document.createElement("div");
+      wd.className = "cal-weekday";
+      var ref = new Date(2023, 0, 1 + w); // Jan 1 2023 = Sunday
+      try { wd.textContent = ref.toLocaleDateString(T("locale"), { weekday: "short" }); }
+      catch (e) { wd.textContent = ["S", "M", "T", "W", "T", "F", "S"][w]; }
+      calWeekdaysEl.appendChild(wd);
+    }
+
+    calGridEl.innerHTML = "";
+    for (var b = 0; b < startDow; b++) {
+      var pad = document.createElement("div");
+      pad.className = "cal-cell blank";
+      calGridEl.appendChild(pad);
+    }
+
+    var loggedDays = 0, sumLogged = 0, onTarget = 0;
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var ds = year + "-" + pad2(month0 + 1) + "-" + pad2(d);
+      var total = dayTotal(ds);
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-cell";
+      if (total > 0) {
+        loggedDays++;
+        sumLogged += total;
+        if (total <= goal) { cell.classList.add("under"); onTarget++; }
+        else { cell.classList.add("over"); }
+      }
+      if (ds === todayS) cell.classList.add("today");
+      if (ds > todayS) cell.classList.add("future");
+
+      var cd = document.createElement("span");
+      cd.className = "cd";
+      cd.textContent = d;
+      var ck = document.createElement("span");
+      ck.className = "ck" + (total > 0 ? "" : " none");
+      ck.textContent = total > 0 ? compactKcal(total) : "–";
+      cell.appendChild(cd);
+      cell.appendChild(ck);
+
+      cell.setAttribute("aria-label", ds + (total > 0 ? " · " + nf(total) + " kcal" : ""));
+      (function (date) {
+        cell.addEventListener("click", function () {
+          selectedDate = date;
+          setViewToggle("day");
+          render();
+        });
+      })(ds);
+
+      calGridEl.appendChild(cell);
+    }
+
+    if (loggedDays === 0) {
+      monthSummaryEl.textContent = T("monthSummaryEmpty");
+    } else {
+      monthSummaryEl.textContent = fmt(T(loggedDays === 1 ? "monthSummaryOne" : "monthSummary"), {
+        logged: loggedDays,
+        avg: nf(Math.round(sumLogged / loggedDays)),
+        ontarget: onTarget
+      });
+    }
+
+    calLegendEl.innerHTML =
+      '<span><i class="l-under"></i>' + T("legUnder") + "</span>" +
+      '<span><i class="l-over"></i>' + T("legOver") + "</span>" +
+      '<span><i class="l-none"></i>' + T("legNone") + "</span>";
   }
 
   /* --- add --- */
@@ -1362,9 +1655,10 @@
     setText("eyebrow", T(syncActive ? "eyebrowSync" : "eyebrow"));
     setText("app-title", T("title"));
     setText("subtitle", T(syncActive ? "subtitleSync" : "subtitle"));
-    prevBtn.setAttribute("aria-label", T("prevDay"));
-    nextBtn.setAttribute("aria-label", T("nextDay"));
-    setText("today-btn", T("today"));
+    var vb = viewToggleEl.querySelectorAll("button");
+    if (vb[0]) vb[0].textContent = T("viewDay");
+    if (vb[1]) vb[1].textContent = T("viewMonth");
+    viewToggleEl.setAttribute("aria-label", T("viewMonth"));
     setText("goal-label", T("goalLabel"));
     goalBtn.setAttribute("aria-label", T("editGoal"));
     foodEl.placeholder = T("foodPlaceholder");
@@ -1404,6 +1698,7 @@
   /* --- init --- */
   registerServiceWorker();
   setMealPicker(pendingMeal);
+  setViewToggle("day");
   applyLang();
   whenSyncDecided(function (api) { if (api) setupSync(api); });
 })();

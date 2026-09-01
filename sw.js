@@ -1,5 +1,5 @@
 /* Calorie Counter service worker — offline shell cache. Bump CACHE on every release. */
-var CACHE = "calorie-counter-v1";
+var CACHE = "calorie-counter-v2";
 var ASSETS = [
   "./",
   "./index.html",
